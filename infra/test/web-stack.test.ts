@@ -95,7 +95,7 @@ test('the repository is connected and its token never reaches the template', () 
   // A connection is required, not optional: Amplify Hosting does not support
   // manual deploys for SSR apps, so a repository build is the only route to the
   // compute primitive. Deploying without it serves every route from S3.
-  expect(props.Repository).toBe('https://github.com/rxshabN/first-commit-lockedin');
+  expect(props.Repository).toBe('https://github.com/rxshabN/Skillbridge');
 
   // The token is a CloudFormation dynamic reference, resolved at deploy time.
   // If this ever becomes a literal, the credential is sitting in the synthesised

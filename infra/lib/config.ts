@@ -70,14 +70,20 @@ export const WEB_BRANCH = 'master';
  * The Amplify domain is `<branch>.<appId>.amplifyapp.com`. The app id is
  * generated, but stable for the life of the app, so it is written down here
  * rather than passed by hand on every deploy.
+ *
+ * It is therefore per-app, not per-repo: this is `d3tw7hhn6mednd`, the app
+ * built from `rxshabN/Skillbridge`. A new Amplify app means a new id, a new
+ * origin, and a compute redeploy — until that happens every browser voice
+ * socket is refused with 403, while curl and the smoke test still pass because
+ * they send a loopback origin.
  */
 export const ALLOWED_WEB_ORIGINS = [
-  `https://${WEB_BRANCH}.d20i2hklonrt3y.amplifyapp.com`,
+  `https://${WEB_BRANCH}.d3tw7hhn6mednd.amplifyapp.com`,
   'http://localhost:3000',
 ].join(',');
 
 /** The repository Amplify builds the web tier from. */
-export const WEB_REPOSITORY = 'https://github.com/rxshabN/first-commit-lockedin';
+export const WEB_REPOSITORY = 'https://github.com/rxshabN/Skillbridge';
 
 /**
  * The GitHub personal access token Amplify uses to clone and to register its
