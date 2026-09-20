@@ -4,6 +4,26 @@
 
 🔗 **Live demo:** https://master.d3tw7hhn6mednd.amplifyapp.com
 
+## Signing in
+
+There is no public sign-up — accounts exist only by invitation, which is how a
+B2B platform should work. Use these three demo accounts to see each role.
+
+On the sign-in screen, **switch the selector from Phone to Email** before
+entering the address.
+
+| Role | Email | Password | Lands on |
+| --- | --- | --- | --- |
+| Worker | `demo-worker@skillbridge.test` | `Demoworkerpass1` | Their training plan |
+| Manager | `demo-manager@skillbridge.test` | `Demomanagerpass1` | Department dashboard |
+| Admin | `demo-admin@skillbridge.test` | `Demoadminpass1` | Organisation overview |
+
+Sign out before switching roles, or use a private window — the app signs the
+previous session out for you, but a fresh window is cleaner.
+
+**The voice tutor needs microphone permission.** The worker's plan and lesson
+screens have a hold-to-ask button; the browser will prompt on first use.
+
 ---
 
 ## The problem
@@ -118,8 +138,3 @@ cd services/voice && npm ci && npm test  # the voice service
 
 Deployment is continuous: a push to `master` builds and deploys the web tier.
 Infrastructure changes deploy with `npx cdk deploy` from `infra/`.
-
-## Attribution
-
-Instructional reference content is derived from **LunchBox Sessions**,
-© CD Industrial Group Inc., used with permission for this hackathon.
