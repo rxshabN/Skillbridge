@@ -30,7 +30,16 @@ export const config = {
     sttModel: 'saaras:v3-realtime',
     ttsModel: 'bulbul:v3',
     translateModel: 'mayura:v1',
-    defaultSpeaker: process.env.SARVAM_TTS_SPEAKER ?? 'priya',
+    /**
+     * `shubh` is bulbul:v3's own default male voice, and its strongest male
+     * voice in Hindi, Telugu, Kannada, Odia and Malayalam — the languages this
+     * workforce asks in most. Names are case-sensitive and lowercase.
+     *
+     * Only a v3 voice belongs here: the v2 names such as `anushka` now return
+     * 400 from this model, and a rejected speaker loses the whole reply's audio
+     * rather than degrading to another voice.
+     */
+    defaultSpeaker: process.env.SARVAM_TTS_SPEAKER ?? 'shubh',
   },
 
   bedrock: {

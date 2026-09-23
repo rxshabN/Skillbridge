@@ -210,6 +210,11 @@ export class ComputeStack extends cdk.Stack {
             // to whatever MODELS says, and the drift surfaces as an
             // AccessDenied that reads like a permissions problem.
             { name: 'VOICE_MODEL_ID', value: MODELS.voiceOrchestrator },
+            // The voice bulbul:v3 answers in. It agrees with the default in
+            // services/voice/src/config.ts and is set here as well so the
+            // speaker can be changed by a stack deploy alone — the image now
+            // running was built while that default was still `priya`.
+            { name: 'SARVAM_TTS_SPEAKER', value: 'shubh' },
           ],
           // Resolved by the execution role at task start. Never in the
           // environment array above, in the Dockerfile, or in a committed .env.
