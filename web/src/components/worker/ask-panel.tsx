@@ -29,6 +29,8 @@ export interface AskPanelProps {
   partLabel?: string;
   onAskStart?: () => void;
   onAskEnd?: () => void;
+  /** Reconnect after the channel gave up. Turns the button into "try again". */
+  onRetry?: () => void;
   transcript?: string;
   reply?: string;
   /** Gates the button: audio captured before `ready` goes nowhere. */
@@ -46,6 +48,7 @@ export function AskPanel({
   partLabel,
   onAskStart,
   onAskEnd,
+  onRetry,
   transcript,
   reply,
   channelState = 'ready',
@@ -57,6 +60,15 @@ export function AskPanel({
   const { t } = useI18n();
   const [holding, setHolding] = useState(false);
   const ready = channelState === 'ready';
+  /**
+   * The channel has stopped trying.
+   *
+   * The button used to go on saying "Connecting…" in this state, directly above
+   * a line explaining that the tutor was unreachable — so the only control on
+   * screen told the worker to keep waiting for something that had already given
+   * up. It offers the retry instead.
+   */
+  const unreachable = channelState === 'unavailable';
 
   const start = useCallback(() => {
     if (!ready) return;
@@ -86,18 +98,22 @@ export function AskPanel({
         type="button"
         // Pointer events rather than click: this is push-to-talk, and the worker
         // is often wearing gloves, so the target is deliberately oversized.
-        onPointerDown={start}
-        onPointerUp={end}
-        onPointerCancel={end}
-        onPointerLeave={holding ? end : undefined}
-        aria-pressed={holding}
-        disabled={!ready}
+        onPointerDown={unreachable ? undefined : start}
+        onPointerUp={unreachable ? undefined : end}
+        onPointerCancel={unreachable ? undefined : end}
+        onPointerLeave={!unreachable && holding ? end : undefined}
+        // A tap, not a hold: this one is a button, not the microphone.
+        onClick={unreachable ? onRetry : undefined}
+        aria-pressed={unreachable ? undefined : holding}
+        disabled={!ready && !unreachable}
         className={`flex min-h-16 w-full items-center justify-center gap-3 rounded-lg px-6 text-lg font-semibold transition-colors ${
-          !ready
-            ? 'cursor-not-allowed bg-muted text-muted-foreground'
-            : holding
-              ? 'bg-danger text-danger-foreground'
-              : 'bg-primary text-primary-foreground'
+          unreachable
+            ? 'bg-primary text-primary-foreground'
+            : !ready
+              ? 'cursor-not-allowed bg-muted text-muted-foreground'
+              : holding
+                ? 'bg-danger text-danger-foreground'
+                : 'bg-primary text-primary-foreground'
         }`}
       >
         <svg
@@ -113,11 +129,13 @@ export function AskPanel({
             d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"
           />
         </svg>
-        {!ready
-          ? t('worker.voiceConnecting')
-          : holding
-            ? t('worker.listening')
-            : t('worker.askAloud')}
+        {unreachable
+          ? t('common.retry')
+          : !ready
+            ? t('worker.voiceConnecting')
+            : holding
+              ? t('worker.listening')
+              : t('worker.askAloud')}
       </button>
 
       {channelState === 'unavailable' ? (

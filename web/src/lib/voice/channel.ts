@@ -17,7 +17,24 @@ import type { ScreenContext } from './context';
 import { startMic, type Mic } from './mic';
 import * as player from './player';
 
-const OPEN_TIMEOUT_MS = 4000;
+/**
+ * How long to wait for `ready` before treating an attempt as failed.
+ *
+ * The service gives itself 10s to authenticate a channel (`START_TIMEOUT_MS`
+ * in services/voice), so a 4s budget here gave up while the server was still
+ * well inside its own contract. A task that has just started, the first JWKS
+ * fetch of that task's life, or a phone on shop-floor wifi each spend longer
+ * than four seconds on a handshake — and nothing is waiting on it, because the
+ * channel is warmed on mount precisely so this cost lands where no one is
+ * holding the button.
+ */
+const OPEN_TIMEOUT_MS = 12_000;
+
+/** Attempts before the panel is told the tutor cannot be reached. */
+const MAX_CONNECT_ATTEMPTS = 3;
+
+/** Backoff between those attempts. The last value repeats if it runs out. */
+const RETRY_DELAYS_MS = [700, 2_500];
 /** Refresh before connecting if the token has less than this left. */
 const EXPIRY_MARGIN_S = 90;
 
@@ -119,6 +136,11 @@ export interface VoiceChannel {
    * ready or a turn is already running (onError is called with NOT_READY).
    */
   ask(text: string, options: TurnOptions, handlers: TurnHandlers): boolean;
+  /**
+   * Try again after the automatic attempts have been used up. A no-op while the
+   * channel is already up or still trying.
+   */
+  retry(): void;
   close(): void;
 }
 
@@ -131,6 +153,9 @@ export function openVoiceChannel(opts: {
   let closedByUs = false;
   let handlers: TurnHandlers | null = null;
   let mic: Mic | null = null;
+  /** Attempts since the channel was last up; reset by every successful handshake. */
+  let attempts = 0;
+  let retryTimer: ReturnType<typeof setTimeout> | null = null;
 
   const setState = (s: ChannelState) => {
     state = s;
@@ -147,7 +172,32 @@ export function openVoiceChannel(opts: {
     h?.onDone?.();
   };
 
+  /**
+   * One failure is not an outage.
+   *
+   * A task being replaced, a handover between access points, a laptop waking
+   * up — all close a socket that would connect perfectly a second later. Before
+   * this, the first failure was final: the panel said the tutor was unreachable
+   * and the only way back was a full page reload, because nothing ever tried
+   * again. The state stays `connecting` between attempts, since that is what is
+   * actually happening.
+   */
+  const scheduleRetry = () => {
+    if (closedByUs) return;
+    if (attempts >= MAX_CONNECT_ATTEMPTS) {
+      setState('unavailable');
+      return;
+    }
+    setState('connecting');
+    const delay = RETRY_DELAYS_MS[Math.min(attempts - 1, RETRY_DELAYS_MS.length - 1)];
+    retryTimer = setTimeout(() => {
+      retryTimer = null;
+      void connect();
+    }, delay);
+  };
+
   const connect = async () => {
+    attempts += 1;
     setState('connecting');
     let token: string | null;
     try {
@@ -164,11 +214,10 @@ export function openVoiceChannel(opts: {
 
     const sock = new WebSocket(voiceStreamUrl());
     ws = sock;
+    // Closing routes through `onclose`, which owns the retry decision — so a
+    // handshake that timed out and a socket that was refused take one path.
     const timer = setTimeout(() => {
-      if (state !== 'ready') {
-        sock.close();
-        setState('unavailable');
-      }
+      if (state !== 'ready') sock.close();
     }, OPEN_TIMEOUT_MS);
 
     sock.onopen = () => sock.send(JSON.stringify({ t: 'start', token }));
@@ -184,6 +233,7 @@ export function openVoiceChannel(opts: {
       switch (m.t) {
         case 'ready':
           clearTimeout(timer);
+          attempts = 0;
           setState('ready');
           break;
         case 'listening':
@@ -246,9 +296,13 @@ export function openVoiceChannel(opts: {
       if (handlers) endTurn();
       if (closedByUs) return;
       // Expired or dropped after working: warm a new channel in the background.
-      // Never reached ready: the service is down — say so rather than loop.
-      if (wasReady) void connect();
-      else setState('unavailable');
+      // Never reached ready: try again a couple of times before giving up.
+      if (wasReady) {
+        attempts = 0;
+        void connect();
+        return;
+      }
+      scheduleRetry();
     };
   };
 
@@ -346,8 +400,18 @@ export function openVoiceChannel(opts: {
       return true;
     },
 
+    retry() {
+      if (closedByUs || state === 'ready' || state === 'connecting') return;
+      attempts = 0;
+      void connect();
+    },
+
     close() {
       closedByUs = true;
+      if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+      }
       stopMic();
       player.stopSpeech();
       ws?.close();

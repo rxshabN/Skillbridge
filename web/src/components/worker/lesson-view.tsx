@@ -283,6 +283,7 @@ export function LessonView({ lesson }: { lesson: LessonContent }) {
             partLabel={selectedPart.label}
             onAskStart={ask.start}
             onAskEnd={ask.end}
+            onRetry={ask.retry}
             transcript={ask.transcript || ask.partial}
             reply={ask.reply}
             channelState={ask.channel}

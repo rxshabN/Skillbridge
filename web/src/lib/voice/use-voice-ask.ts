@@ -178,5 +178,10 @@ export function useVoiceAsk(
     turnRef.current?.stop();
   }, []);
 
-  return { ...state, start, end };
+  /** For the panel's "try again" once the channel has given up on its own. */
+  const retry = useCallback(() => {
+    channelRef.current?.retry();
+  }, []);
+
+  return { ...state, start, end, retry };
 }
