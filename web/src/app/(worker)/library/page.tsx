@@ -162,7 +162,7 @@ export default function LibraryPage() {
         <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
           <div className="max-w-2xl">
             <span className="text-xs font-bold uppercase tracking-wider text-primary">
-              Universal Vocational Dataset &bull; Lunchbox Sessions Repository
+              Universal Vocational Dataset &bull;
             </span>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 mt-1">
               Industrial Training Catalog & Simulations
